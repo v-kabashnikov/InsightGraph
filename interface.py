@@ -140,9 +140,9 @@ st.markdown("""
         opacity: 0.3 !important;
     }
 
-    /* Status text (italic) */
+    /* Status text (italic) - Thinking/Processing messages */
     em {
-        color: #1c1053 !important;
+        color: #AB39DC !important;
         font-style: italic !important;
     }
 
