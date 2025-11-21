@@ -2,7 +2,188 @@ import streamlit as st
 from graph_agent import create_agent_runner
 
 # --- App Configuration ---
-st.set_page_config(page_title="InsightGraph 2.0", layout="wide", page_icon="🧠")
+st.set_page_config(
+    page_title="InsightGraph 2.0",
+    layout="wide",
+    page_icon="🧠",
+    initial_sidebar_state="expanded"
+)
+
+# --- Brand Colors ---
+# Primary Purple: #AB39DC
+# Dark Purple: #1c1053
+# Light Gray: #f5f5f5
+# White: #FFFFFF
+# Black Background: #000000
+
+# --- Custom CSS for Brand Styling ---
+st.markdown("""
+<style>
+    /* Main app background */
+    .stApp {
+        background-color: #000000;
+        color: #f5f5f5;
+    }
+
+    /* Main content area */
+    .main .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        background-color: #000000;
+    }
+
+    /* Title styling */
+    h1 {
+        color: #AB39DC !important;
+        font-weight: 700 !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: #1c1053 !important;
+    }
+
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #f5f5f5 !important;
+    }
+
+    [data-testid="stSidebar"] h2 {
+        color: #AB39DC !important;
+    }
+
+    /* Input fields */
+    .stTextInput > div > div > input {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border: 1px solid #AB39DC !important;
+    }
+
+    .stTextInput > div > div > input:focus {
+        border-color: #AB39DC !important;
+        box-shadow: 0 0 0 1px #AB39DC !important;
+    }
+
+    /* Chat input */
+    .stChatInput > div > div > input {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border: 1px solid #AB39DC !important;
+    }
+
+    /* Chat messages */
+    .stChatMessage {
+        background-color: #1c1053 !important;
+        border: 1px solid #AB39DC !important;
+        border-radius: 8px !important;
+    }
+
+    [data-testid="stChatMessageContent"] {
+        color: #f5f5f5 !important;
+    }
+
+    /* Info/Success/Error boxes */
+    .stAlert {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border-left: 4px solid #AB39DC !important;
+    }
+
+    /* Markdown text */
+    .stMarkdown {
+        color: #f5f5f5 !important;
+    }
+
+    /* Code blocks */
+    code {
+        background-color: #1c1053 !important;
+        color: #AB39DC !important;
+        border: 1px solid #AB39DC !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+    }
+
+    pre {
+        background-color: #1c1053 !important;
+        border: 1px solid #AB39DC !important;
+        border-radius: 8px !important;
+    }
+
+    pre code {
+        color: #f5f5f5 !important;
+        border: none !important;
+    }
+
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: #1c1053 !important;
+        color: #AB39DC !important;
+        border: 1px solid #AB39DC !important;
+        border-radius: 8px !important;
+    }
+
+    .streamlit-expanderHeader:hover {
+        background-color: #2a1a6b !important;
+    }
+
+    .streamlit-expanderContent {
+        background-color: #1c1053 !important;
+        border: 1px solid #AB39DC !important;
+        border-top: none !important;
+        border-radius: 0 0 8px 8px !important;
+    }
+
+    /* Divider */
+    hr {
+        border-color: #AB39DC !important;
+        opacity: 0.3 !important;
+    }
+
+    /* Status text (italic) */
+    em {
+        color: #AB39DC !important;
+        font-style: italic !important;
+    }
+
+    /* Links */
+    a {
+        color: #AB39DC !important;
+    }
+
+    a:hover {
+        color: #d165ff !important;
+    }
+
+    /* Success message styling */
+    .stSuccess {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border-left: 4px solid #AB39DC !important;
+    }
+
+    /* Warning message styling */
+    .stWarning {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border-left: 4px solid #AB39DC !important;
+    }
+
+    /* Error message styling */
+    .stError {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border-left: 4px solid #AB39DC !important;
+    }
+
+    /* Info message styling */
+    .stInfo {
+        background-color: #1c1053 !important;
+        color: #f5f5f5 !important;
+        border-left: 4px solid #AB39DC !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🧠 InsightGraph: Agentic Explorer")
 
 # --- Sidebar for Credentials ---
