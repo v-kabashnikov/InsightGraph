@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # --- Brand Colors ---
-# Primary: #1c1053 (dark purple - main accent color)
+# Primary: #AB39DC (bright purple - main accent color)
 # Background: #0d0829 (darker purple for UI elements)
 # Light Gray: #f5f5f5
 # White: #FFFFFF
@@ -35,7 +35,7 @@ st.markdown("""
 
     /* Title styling */
     h1 {
-        color: #1c1053 !important;
+        color: #AB39DC !important;
         font-weight: 700 !important;
         margin-bottom: 1.5rem !important;
     }
@@ -50,32 +50,32 @@ st.markdown("""
     }
 
     [data-testid="stSidebar"] h2 {
-        color: #1c1053 !important;
+        color: #AB39DC !important;
     }
 
     /* Input fields */
     .stTextInput > div > div > input {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border: 1px solid #1c1053 !important;
+        border: 1px solid #AB39DC !important;
     }
 
     .stTextInput > div > div > input:focus {
-        border-color: #1c1053 !important;
-        box-shadow: 0 0 0 1px #1c1053 !important;
+        border-color: #AB39DC !important;
+        box-shadow: 0 0 0 1px #AB39DC !important;
     }
 
     /* Chat input */
     .stChatInput > div > div > input {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border: 1px solid #1c1053 !important;
+        border: 1px solid #AB39DC !important;
     }
 
     /* Chat messages */
     .stChatMessage {
         background-color: #0d0829 !important;
-        border: 1px solid #1c1053 !important;
+        border: 1px solid #AB39DC !important;
         border-radius: 8px !important;
     }
 
@@ -87,7 +87,7 @@ st.markdown("""
     .stAlert {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border-left: 4px solid #1c1053 !important;
+        border-left: 4px solid #AB39DC !important;
     }
 
     /* Markdown text */
@@ -98,15 +98,15 @@ st.markdown("""
     /* Code blocks */
     code {
         background-color: #0d0829 !important;
-        color: #1c1053 !important;
-        border: 1px solid #1c1053 !important;
+        color: #AB39DC !important;
+        border: 1px solid #AB39DC !important;
         padding: 2px 6px !important;
         border-radius: 4px !important;
     }
 
     pre {
         background-color: #0d0829 !important;
-        border: 1px solid #1c1053 !important;
+        border: 1px solid #AB39DC !important;
         border-radius: 8px !important;
     }
 
@@ -118,8 +118,8 @@ st.markdown("""
     /* Expander */
     .streamlit-expanderHeader {
         background-color: #0d0829 !important;
-        color: #1c1053 !important;
-        border: 1px solid #1c1053 !important;
+        color: #AB39DC !important;
+        border: 1px solid #AB39DC !important;
         border-radius: 8px !important;
     }
 
@@ -129,14 +129,14 @@ st.markdown("""
 
     .streamlit-expanderContent {
         background-color: #0d0829 !important;
-        border: 1px solid #1c1053 !important;
+        border: 1px solid #AB39DC !important;
         border-top: none !important;
         border-radius: 0 0 8px 8px !important;
     }
 
     /* Divider */
     hr {
-        border-color: #1c1053 !important;
+        border-color: #AB39DC !important;
         opacity: 0.3 !important;
     }
 
@@ -148,39 +148,39 @@ st.markdown("""
 
     /* Links */
     a {
-        color: #1c1053 !important;
+        color: #AB39DC !important;
     }
 
     a:hover {
-        color: #2d1a73 !important;
+        color: #d165ff !important;
     }
 
     /* Success message styling */
     .stSuccess {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border-left: 4px solid #1c1053 !important;
+        border-left: 4px solid #AB39DC !important;
     }
 
     /* Warning message styling */
     .stWarning {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border-left: 4px solid #1c1053 !important;
+        border-left: 4px solid #AB39DC !important;
     }
 
     /* Error message styling */
     .stError {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border-left: 4px solid #1c1053 !important;
+        border-left: 4px solid #AB39DC !important;
     }
 
     /* Info message styling */
     .stInfo {
         background-color: #0d0829 !important;
         color: #f5f5f5 !important;
-        border-left: 4px solid #1c1053 !important;
+        border-left: 4px solid #AB39DC !important;
     }
 </style>
 """, unsafe_allow_html=True)
