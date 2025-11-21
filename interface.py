@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from graph_agent import create_agent_runner
 
 # --- App Configuration ---
@@ -186,6 +187,20 @@ st.markdown("""
 
 st.title("🧠 InsightGraph: Agentic Explorer")
 
+# --- Shipping Jokes ---
+SHIPPING_JOKES = [
+    "Why did the shipping container go to therapy? It had too much baggage! 📦",
+    "What do you call a carrier that never delivers on time? A 'ship' happens company! 🚢",
+    "Why don't ports ever get lonely? They're always bustling with activity! ⚓",
+    "What's a logistics manager's favorite music? Heavy shipping! 🎵",
+    "Why did the cargo ship break up with the tugboat? It needed more space! 💔",
+    "What do you call a shipment that's always late? Fashionably delayed! ⏰",
+    "Why are shipping manifests always so organized? They have excellent containerization! 📋",
+    "What's a freight forwarder's favorite movie? The Ship-ment! 🎬",
+    "Why did the package become a comedian? It had great delivery! 🎤",
+    "What do you call a vessel with a sense of humor? A cargo-mic! 😄"
+]
+
 # --- Sidebar for Credentials ---
 with st.sidebar:
     st.header("🔌 Connection Credentials")
@@ -244,6 +259,11 @@ if neo4j_password and gemini_key:
                     action_history = []
                     final_answer = ""
 
+                    # Joke cycling setup
+                    joke_index = 0
+                    last_joke_time = time.time()
+                    start_time = time.time()
+
                     # Create placeholders
                     status_placeholder = st.empty()
                     history_placeholder = st.empty()
@@ -253,24 +273,33 @@ if neo4j_password and gemini_key:
                     for event in agent_runner(prompt):
                         event_type = event.get("type")
 
+                        # Check if 10 seconds have passed since last joke change
+                        current_time = time.time()
+                        if current_time - last_joke_time >= 10:
+                            joke_index = (joke_index + 1) % len(SHIPPING_JOKES)
+                            last_joke_time = current_time
+
                         if event_type == "summary":
-                            # Show meaningful summary
-                            status_placeholder.markdown(f"_{event['content']}_")
+                            # Show status with joke
+                            status_msg = event['content']
+                            joke = SHIPPING_JOKES[joke_index]
+                            status_placeholder.markdown(f"_{status_msg}_\n\n💡 {joke}")
 
                         elif event_type == "tool_call":
                             # Show humanized status based on tool
                             tool_name = event["name"]
                             tool_args = event["args"]
+                            joke = SHIPPING_JOKES[joke_index]
 
                             if tool_name == "get_schema":
-                                status_placeholder.markdown("_Understanding your database structure..._")
+                                status_placeholder.markdown(f"_Understanding your database structure..._\n\n💡 {joke}")
                                 # Store technical details for history
                                 action_history.append({
                                     "type": "tool_call",
                                     "content": "🔍 **Getting database schema**"
                                 })
                             elif tool_name == "run_query":
-                                status_placeholder.markdown("_Analyzing your data..._")
+                                status_placeholder.markdown(f"_Analyzing your data..._\n\n💡 {joke}")
                                 query = tool_args.get("query", "")
                                 # Store technical details for history
                                 display_query = query[:200] + "..." if len(query) > 200 else query
@@ -279,7 +308,7 @@ if neo4j_password and gemini_key:
                                     "content": f"⚡ **Executing Cypher query**\n```cypher\n{display_query}\n```"
                                 })
                             else:
-                                status_placeholder.markdown("_Working on it..._")
+                                status_placeholder.markdown(f"_Working on it..._\n\n💡 {joke}")
                                 action_history.append({
                                     "type": "tool_call",
                                     "content": f"🔧 **Calling tool: {tool_name}**\n```json\n{tool_args}\n```"
