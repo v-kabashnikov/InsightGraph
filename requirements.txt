@@ -1,8 +1,5 @@
 streamlit
-langchain
-langchain-neo4j
-langchain-google-genai
-langchain-community
 neo4j
-streamlit-lottie
-streamlit-agraph
+langchain
+langchain-core
+langchain-google-genai
