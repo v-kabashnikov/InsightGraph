@@ -1,157 +1,76 @@
 import streamlit as st
-from streamlit_lottie import st_lottie
-from streamlit_agraph import agraph, Config
-from langchain_neo4j import Neo4jGraph
+from graph_agent import create_agent_runner
 
-# Import our custom modules
-import config
-import visualization
-import brain
+# --- App Configuration ---
+st.set_page_config(page_title="InsightGraph 2.0", layout="wide", page_icon="🧠")
+st.title("🧠 InsightGraph: Agentic Explorer")
 
-# 1. Setup
-config.setup_page()
-
-# Initialize Session State for Schema
-if "schema_data" not in st.session_state:
-    st.session_state.schema_data = {"nodes": [], "edges": []}
-
-# Load Animation
-lottie_graph = config.load_lottieurl(config.LOTTIE_URL)
-
-st.title("InsightGraph")
-
-# ==========================================
-# 2. SIDEBAR
-# ==========================================
+# --- Sidebar for Credentials ---
 with st.sidebar:
-    st.header("🔌 Connection")
-    neo4j_url = st.text_input("Neo4j URI", value="neo4j+s://f99fdccf.databases.neo4j.io")
-    neo4j_user = st.text_input("Username", value="neo4j")
-    neo4j_password = st.text_input("Password", type="password", value="") 
-    st.divider()
-    gemini_key = st.text_input("Google API Key", type="password", value="")
-    model_name = st.text_input("Model Name", value="gemini-2.5-flash")
+    st.header("🔌 Connection Credentials")
+    st.markdown("Provide your database and API credentials to activate the agent.")
     
-    if st.button("Reload Schema Map"):
-        st.session_state.schema_data = {"nodes": [], "edges": []}
-        st.rerun()
-
-# ==========================================
-# 3. FETCH SCHEMA (INITIAL STATE)
-# ==========================================
-if neo4j_password and not st.session_state.schema_data["nodes"]:
-    try:
-        with st.spinner("Fetching Data Structure..."):
-            schema_graph = Neo4jGraph(url=neo4j_url, username=neo4j_user, password=neo4j_password)
-            
-            # Safer Query: Checks for labels existence
-            schema_query = """
-            MATCH (a)-[r]->(b)
-            WITH labels(a) AS a_labels, type(r) AS r_type, labels(b) AS b_labels
-            WHERE size(a_labels) > 0 AND size(b_labels) > 0
-            RETURN a_labels[0] AS source_label, r_type AS relationship_type, b_labels[0] AS target_label
-            LIMIT 100
-            """
-            
-            with schema_graph._driver.session() as session:
-                result = session.run(schema_query)
-                
-                schema_nodes = {} 
-                schema_edges = []
-                from streamlit_agraph import Node, Edge 
-
-                for record in result:
-                    src = record['source_label']
-                    rel = record['relationship_type']
-                    tgt = record['target_label']
-                    
-                    if src not in schema_nodes:
-                        schema_nodes[src] = Node(id=src, label=src, size=25, color="#4ECDC4")
-                    
-                    if tgt not in schema_nodes:
-                        schema_nodes[tgt] = Node(id=tgt, label=tgt, size=25, color="#FF6B6B")
-                        
-                    schema_edges.append(Edge(source=src, target=tgt, label=rel))
-            
-            if schema_nodes:
-                st.session_state.schema_data = {"nodes": list(schema_nodes.values()), "edges": schema_edges}
-            else:
-                st.toast("Connected, but no relationships found in DB.", icon="⚠️")
-
-    except Exception as e:
-        st.sidebar.error(f"Schema fetch failed: {e}")
-
-# ==========================================
-# 4. DASHBOARD LAYOUT
-# ==========================================
-col_chat, col_graph = st.columns([3, 2], gap="medium")
-
-# --- RIGHT COLUMN: STATIC SCHEMA VIEW ---
-with col_graph:
-    with st.expander("Schema", expanded=True):
-        nodes = st.session_state.schema_data.get("nodes", [])
-        edges = st.session_state.schema_data.get("edges", [])
-        
-        if nodes:
-            st.caption(f"({len(nodes)} Entity Types)")
-            
-            # FIX: CLEANEST POSSIBLE CONFIGURATION
-            # 1. Remove options that cause "Unknown option" errors (highlightColor, collapsible, etc.)
-            # 2. Explicitly set groups={} to fix the "Invalid type: null" error.
-            config_obj = Config(
-                width="100%", 
-                height=600, 
-                directed=True, 
-                physics=True, 
-                hierarchical=False,
-                groups={} # <--- CRITICAL FIX for null error
-            )
-            
-            try:
-                agraph(nodes=nodes, edges=edges, config=config_obj)
-            except Exception as e:
-                st.error(f"Graph render error: {e}")
-        else:
-            st.info("Connect to Neo4j to see the schema.")
-            if lottie_graph:
-                st_lottie(lottie_graph, height=200, key="idle")
-
-# --- LEFT COLUMN: CHAT INTERFACE ---
-with col_chat:
+    neo4j_uri = st.text_input("Neo4j URI", value="neo4j+s://ee558c73.databases.neo4j.io")
+    neo4j_user = st.text_input("Neo4j Username", value="neo4j")
+    neo4j_password = st.text_input("Neo4j Password", type="password", value="")
+    gemini_key = st.text_input("Google Gemini API Key", type="password")
+    
+    st.divider()
     if neo4j_password and gemini_key:
-        try:
-            graph, chain = brain.get_graph_chain(neo4j_url, neo4j_user, neo4j_password, gemini_key, model_name)
-
-            if "messages" not in st.session_state: st.session_state.messages = []
-            for msg in st.session_state.messages:
-                with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
-                    if "cypher" in msg:
-                        with st.expander("Logic"): st.code(msg["cypher"], language="cypher")
-
-            if prompt := st.chat_input("Ex: Show me the network for Hogewoning"):
-                clean_prompt = prompt.strip()
-                st.session_state.messages.append({"role": "user", "content": clean_prompt})
-                with st.chat_message("user"): st.markdown(clean_prompt)
-
-                with st.chat_message("assistant"):
-                    with st.spinner("Thinking..."):
-                        try:
-                            response = chain.invoke(clean_prompt)
-                            result_text = response['result']
-                            generated_cypher = response['intermediate_steps'][0]['query']
-                            
-                            st.markdown(result_text)
-                            st.session_state.messages.append({
-                                "role": "assistant", 
-                                "content": result_text, 
-                                "cypher": generated_cypher
-                            })
-                            
-                        except Exception as e:
-                            st.error(f"Error: {e}")
-
-        except Exception as e:
-            st.error(f"Connection Failed: {e}")
+        st.success("Credentials provided!")
     else:
-        st.warning("👈 Enter credentials to start.")
+        st.warning("Missing one or more credentials.")
+
+# --- Caching the Agent ---
+# Use Streamlit's cache to create the agent only once
+@st.cache_resource
+def get_agent_runner(_neo4j_uri, _neo4j_user, _neo4j_password, _gemini_key):
+    """Creates and caches the agent runner and its database tools instance."""
+    agent_runner, db_tools = create_agent_runner(
+        _neo4j_uri, _neo4j_user, _neo4j_password, _gemini_key
+    )
+    return agent_runner, db_tools
+
+# --- Main Chat Interface ---
+if neo4j_password and gemini_key:
+    # Create the agent runner using the credentials
+    try:
+        agent_runner, db_tools = get_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key)
+
+        st.markdown("""
+        Ask complex, multi-step questions about your shipping logistics data.
+        *Example: "Which customer has the most negative shipments, and what are the top 3 issues associated with them?"*
+        """)
+
+        # Initialize chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Display chat history on rerun
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        # Chat input box
+        if prompt := st.chat_input("Ask a question about your graph..."):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+
+            with st.chat_message("assistant"):
+                with st.spinner("🤔 The agent is thinking..."):
+                    try:
+                        response = agent_runner(prompt)
+                        st.markdown(response)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                    except Exception as e:
+                        st.error(f"An error occurred while running the agent: {e}")
+    
+    except Exception as e:
+        st.error(f"Failed to initialize the agent. Please check your credentials. Error: {e}")
+
+else:
+    st.info("Please provide all credentials in the sidebar to begin.")
+
+# Optional: Add a cleanup hook for the database connection if needed,
+# but for local dev, letting it timeout is usually fine.
