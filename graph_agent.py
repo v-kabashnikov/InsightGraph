@@ -76,39 +76,72 @@ def create_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key):
     
     # This is the function that will be returned and used by the UI
     def agent_runner(question: str):
-        """Runs the agent with a given question using a manual tool-use loop."""
+        """Runs the agent with a given question using a manual tool-use loop.
+
+        Yields events during execution:
+        - {"type": "tool_call", "name": str, "args": dict}
+        - {"type": "tool_result", "name": str, "result": str}
+        - {"type": "thinking", "content": str}
+        - {"type": "final_answer", "content": str}
+        """
         messages = [HumanMessage(content=question)]
         tool_map = {tool.__name__: tool for tool in tools}
         max_turns = 5
-        for _ in range(max_turns):
+
+        for turn in range(max_turns):
+            # Yield thinking status
+            yield {"type": "thinking", "content": f"Analyzing (step {turn + 1}/{max_turns})..."}
+
             response = agent.invoke({"messages": messages})
+
             if not response.tool_calls:
+                # Extract final answer
                 content = response.content
                 if isinstance(content, list) and content and isinstance(content[0], dict) and "text" in content[0]:
-                    return content[0]["text"]
-                return str(content)
+                    final_text = content[0]["text"]
+                else:
+                    final_text = str(content)
+
+                # Stream the final answer
+                yield {"type": "final_answer", "content": final_text}
+                return
 
             messages.append(response)
             tool_messages = []
+
             for tool_call in response.tool_calls:
                 tool_name = tool_call["name"]
                 tool_args = tool_call["args"]
+
+                # Yield tool call event
+                yield {"type": "tool_call", "name": tool_name, "args": tool_args}
+
                 if tool_name in tool_map:
                     try:
                         tool_function = tool_map[tool_name]
                         tool_result = tool_function(**tool_args)
+
+                        # Yield tool result event
+                        yield {"type": "tool_result", "name": tool_name, "result": str(tool_result)}
+
                         tool_messages.append(
                             ToolMessage(content=str(tool_result), name=tool_name, tool_call_id=tool_call["id"])
                         )
                     except Exception as e:
+                        error_msg = f"Error executing tool '{tool_name}': {e}"
+                        yield {"type": "tool_result", "name": tool_name, "result": error_msg, "error": True}
                         tool_messages.append(
-                            ToolMessage(content=f"Error executing tool '{tool_name}': {e}", name=tool_name, tool_call_id=tool_call["id"])
+                            ToolMessage(content=error_msg, name=tool_name, tool_call_id=tool_call["id"])
                         )
                 else:
+                    error_msg = f"Error: Agent tried to use an unknown tool '{tool_name}'"
+                    yield {"type": "tool_result", "name": tool_name, "result": error_msg, "error": True}
                     tool_messages.append(
-                        ToolMessage(content=f"Error: Agent tried to use an unknown tool '{tool_name}'", name=tool_name, tool_call_id=tool_call["id"])
+                        ToolMessage(content=error_msg, name=tool_name, tool_call_id=tool_call["id"])
                     )
+
             messages.extend(tool_messages)
-        return "The agent could not reach a final answer after multiple steps."
+
+        yield {"type": "final_answer", "content": "The agent could not reach a final answer after multiple steps."}
         
     return agent_runner, db_tools
