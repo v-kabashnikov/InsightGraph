@@ -63,8 +63,8 @@ if neo4j_password and gemini_key:
                     action_history = []
                     final_answer = ""
 
-                    # Create placeholders for current action and history
-                    current_action_placeholder = st.empty()
+                    # Create placeholders
+                    status_placeholder = st.empty()
                     history_placeholder = st.empty()
                     answer_placeholder = st.empty()
 
@@ -73,35 +73,43 @@ if neo4j_password and gemini_key:
                         event_type = event.get("type")
 
                         if event_type == "thinking":
-                            # Show thinking status
-                            current_action_placeholder.info(f"🤔 {event['content']}")
+                            # Show simple humanized status
+                            status_placeholder.markdown("_Thinking..._")
 
                         elif event_type == "tool_call":
-                            # Format tool call details
+                            # Show humanized status based on tool
                             tool_name = event["name"]
                             tool_args = event["args"]
 
-                            # Create a nice display for tool calls
                             if tool_name == "get_schema":
-                                action_msg = "🔍 **Getting database schema**"
+                                status_placeholder.markdown("_Understanding your database structure..._")
+                                # Store technical details for history
+                                action_history.append({
+                                    "type": "tool_call",
+                                    "content": "🔍 **Getting database schema**"
+                                })
                             elif tool_name == "run_query":
+                                status_placeholder.markdown("_Analyzing your data..._")
                                 query = tool_args.get("query", "")
-                                # Truncate long queries for display
+                                # Store technical details for history
                                 display_query = query[:200] + "..." if len(query) > 200 else query
-                                action_msg = f"⚡ **Executing Cypher query**\n```cypher\n{display_query}\n```"
+                                action_history.append({
+                                    "type": "tool_call",
+                                    "content": f"⚡ **Executing Cypher query**\n```cypher\n{display_query}\n```"
+                                })
                             else:
-                                action_msg = f"🔧 **Calling tool: {tool_name}**\n```json\n{tool_args}\n```"
-
-                            action_history.append({"type": "tool_call", "content": action_msg})
-                            current_action_placeholder.info(action_msg)
+                                status_placeholder.markdown("_Working on it..._")
+                                action_history.append({
+                                    "type": "tool_call",
+                                    "content": f"🔧 **Calling tool: {tool_name}**\n```json\n{tool_args}\n```"
+                                })
 
                         elif event_type == "tool_result":
-                            # Format tool result
+                            # Store technical results for history only
                             tool_name = event["name"]
                             result = event["result"]
                             is_error = event.get("error", False)
 
-                            # Truncate long results for display
                             display_result = result[:500] + "..." if len(result) > 500 else result
 
                             if is_error:
@@ -110,16 +118,15 @@ if neo4j_password and gemini_key:
                                 result_msg = f"✅ **Result from {tool_name}**\n```\n{display_result}\n```"
 
                             action_history.append({"type": "tool_result", "content": result_msg})
-                            current_action_placeholder.success(result_msg) if not is_error else current_action_placeholder.error(result_msg)
 
                         elif event_type == "final_answer":
-                            # Clear current action and show final answer
-                            current_action_placeholder.empty()
+                            # Clear status and show final answer
+                            status_placeholder.empty()
                             final_answer = event["content"]
 
                             # Show expandable history if there are actions
                             if action_history:
-                                with history_placeholder.expander("🔍 View Agent Actions", expanded=False):
+                                with history_placeholder.expander("View reasoning steps", expanded=False):
                                     for i, action in enumerate(action_history, 1):
                                         st.markdown(f"**Step {i}**")
                                         st.markdown(action["content"])
