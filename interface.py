@@ -72,9 +72,9 @@ if neo4j_password and gemini_key:
                     for event in agent_runner(prompt):
                         event_type = event.get("type")
 
-                        if event_type == "thinking":
-                            # Show simple humanized status
-                            status_placeholder.markdown("_Thinking..._")
+                        if event_type == "summary":
+                            # Show meaningful summary
+                            status_placeholder.markdown(f"_{event['content']}_")
 
                         elif event_type == "tool_call":
                             # Show humanized status based on tool

@@ -55,9 +55,17 @@ def create_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key):
     1.  First, understand the user's question.
     2.  If you are unsure about the graph structure, you must use the `get_schema` tool.
     3.  Construct a valid Cypher query and use the `run_query` tool to execute it.
-    4.  Analyze the results and provide a clear, natural language answer.
+    4.  Analyze the results and provide a comprehensive, detailed answer in natural language.
     5.  If a query returns an error or empty results, analyze the error, double-check the schema with `get_schema`, and try to correct the query.
     6.  You MUST check your generated Cypher query to ensure all labels, relationships, and properties EXACTLY match the schema. Do not misspell terms.
+
+    **Response Guidelines:**
+    - Provide COMPLETE, ELABORATE answers with all relevant details, statistics, and insights.
+    - Include specific numbers, percentages, and comparisons when available.
+    - Format your answers with clear structure using bullet points, numbered lists, or paragraphs as appropriate.
+    - NEVER ask follow-up questions or suggest what the user might want to know next.
+    - Always give a definitive answer based on the available data.
+    - If data is limited, state what you found and acknowledge the limitation, but don't ask for clarification.
 
     **SCHEMA INFORMATION:**
     - **Nodes:** `Customer`, `Shipment`, `Port`, `Carrier`, `Vessel`, `Exception`, `Issue`, `SentimentScore`.
@@ -81,20 +89,21 @@ def create_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key):
         Yields events during execution:
         - {"type": "tool_call", "name": str, "args": dict}
         - {"type": "tool_result", "name": str, "result": str}
-        - {"type": "thinking", "content": str}
+        - {"type": "summary", "content": str}
         - {"type": "final_answer", "content": str}
         """
         messages = [HumanMessage(content=question)]
         tool_map = {tool.__name__: tool for tool in tools}
         max_turns = 5
+        has_retrieved_schema = False
 
         for turn in range(max_turns):
-            # Yield thinking status
-            yield {"type": "thinking", "content": f"Analyzing (step {turn + 1}/{max_turns})..."}
-
             response = agent.invoke({"messages": messages})
 
             if not response.tool_calls:
+                # Before final answer, show formulating message
+                yield {"type": "summary", "content": "Preparing your answer..."}
+
                 # Extract final answer
                 content = response.content
                 if isinstance(content, list) and content and isinstance(content[0], dict) and "text" in content[0]:
@@ -127,6 +136,11 @@ def create_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key):
                         tool_messages.append(
                             ToolMessage(content=str(tool_result), name=tool_name, tool_call_id=tool_call["id"])
                         )
+
+                        # Track if we've retrieved schema
+                        if tool_name == "get_schema":
+                            has_retrieved_schema = True
+
                     except Exception as e:
                         error_msg = f"Error executing tool '{tool_name}': {e}"
                         yield {"type": "tool_result", "name": tool_name, "result": error_msg, "error": True}
@@ -141,6 +155,12 @@ def create_agent_runner(neo4j_uri, neo4j_user, neo4j_password, gemini_key):
                     )
 
             messages.extend(tool_messages)
+
+            # Show summary based on what just happened
+            if has_retrieved_schema and turn == 0:
+                yield {"type": "summary", "content": "Building query based on schema..."}
+            else:
+                yield {"type": "summary", "content": "Processing results..."}
 
         yield {"type": "final_answer", "content": "The agent could not reach a final answer after multiple steps."}
         
